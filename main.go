@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"log/slog"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -43,6 +44,10 @@ func (g *Game) Initialize() error {
 
 	g.playerBody = cp.NewBody(1, cp.INFINITY)
 	g.playerBody.SetPosition(cp.Vector{X: 600, Y: 300})
+
+	// g.playerBody.SetVelocityUpdateFunc(func(body *cp.Body, gravity cp.Vector, damping, dt float64) {
+	// 	slog.Info("Update I have no clue")
+	// })
 
 	playerShape := cp.NewBox(g.playerBody, 32, 64, 0)
 	playerShape.SetFriction(0.0)
@@ -74,9 +79,9 @@ const (
 var walkingDirection int = WALKING_DIRECTION_NONE
 
 func (g *Game) Update() error {
-	g.physicsSpace.Step(1.0 / 60.0)
-	sbould_jump := inpututil.IsKeyJustPressed(ebiten.KeySpace)
-	if sbould_jump {
+	g.physicsSpace.Step(1.0 / 60.0) // FIXME: Use ebiten's ActualTPS
+	wantsToJump := inpututil.IsKeyJustPressed(ebiten.KeySpace)
+	if wantsToJump {
 		g.playerBody.ApplyImpulseAtLocalPoint(cp.Vector{X: 0, Y: -100}, g.playerBody.CenterOfGravity())
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
@@ -92,8 +97,15 @@ func (g *Game) Update() error {
 		walkingDirection = WALKING_DIRECTION_NONE
 	}
 
-	WALKING_SPEED := 100.0
-	g.playerBody.SetVelocity(float64(walkingDirection)*WALKING_SPEED, 0) // FIXME: use force instead
+	WALKING_ACCELERATION := 30.0
+	WALKING_SPEED_LIMIT := 100.0
+	// SPEED_LIMIT := 500.0
+	slog.Debug("Update I have no clue")
+	g.playerBody.ApplyForceAtWorldPoint(cp.Vector{X: WALKING_ACCELERATION * 2000 * float64(walkingDirection), Y: 0}, g.playerBody.CenterOfGravity())
+	vel := g.playerBody.Velocity()
+	vel.Y = 0
+	g.playerBody.SetVelocity(vel.Clamp(WALKING_SPEED_LIMIT).X, g.playerBody.Velocity().Y)
+
 	return nil
 }
 
