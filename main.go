@@ -15,10 +15,13 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/jakecoffman/cp"
 )
@@ -37,8 +40,10 @@ func (g *Game) Initialize() error {
 	g.physicsSpace = cp.NewSpace()
 	g.physicsSpace.Iterations = 1
 	g.physicsSpace.SetGravity(cp.Vector{X: 0, Y: 100})
+
 	g.playerBody = cp.NewBody(1, cp.INFINITY)
 	g.playerBody.SetPosition(cp.Vector{X: 600, Y: 300})
+
 	playerShape := cp.NewBox(g.playerBody, 32, 64, 0)
 	playerShape.SetFriction(0.0)
 	playerShape.SetElasticity(0.0)
@@ -46,24 +51,72 @@ func (g *Game) Initialize() error {
 
 	g.physicsSpace.AddBody(g.playerBody)
 	g.physicsSpace.AddShape(playerShape)
+
+	// static ground
+	staticBody := cp.NewBody(cp.INFINITY, cp.INFINITY)
+	staticBody.SetPosition(cp.Vector{X: 600, Y: 600})
+	groundShape := cp.NewBox(staticBody, 680, 20, 0)
+	groundShape.SetFriction(0.0)
+	groundShape.SetElasticity(0.0)
+	groundShape.SetCollisionType(2)
+	g.physicsSpace.AddBody(staticBody)
+	g.physicsSpace.AddShape(groundShape)
+
 	return nil
 }
 
+const (
+	WALKING_DIRECTION_NONE  = 0
+	WALKING_DIRECTION_LEFT  = -1
+	WALKING_DIRECTION_RIGHT = 1
+)
+
+var walkingDirection int = WALKING_DIRECTION_NONE
+
 func (g *Game) Update() error {
 	g.physicsSpace.Step(1.0 / 60.0)
+	sbould_jump := inpututil.IsKeyJustPressed(ebiten.KeySpace)
+	if sbould_jump {
+		g.playerBody.ApplyImpulseAtLocalPoint(cp.Vector{X: 0, Y: -100}, g.playerBody.CenterOfGravity())
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		walkingDirection = WALKING_DIRECTION_LEFT
+	}
+	if inpututil.IsKeyJustReleased(ebiten.KeyA) && walkingDirection == WALKING_DIRECTION_LEFT {
+		walkingDirection = WALKING_DIRECTION_NONE
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		walkingDirection = WALKING_DIRECTION_RIGHT
+	}
+	if inpututil.IsKeyJustReleased(ebiten.KeyD) && walkingDirection == WALKING_DIRECTION_RIGHT {
+		walkingDirection = WALKING_DIRECTION_NONE
+	}
+
+	WALKING_SPEED := 100.0
+	g.playerBody.SetVelocity(float64(walkingDirection)*WALKING_SPEED, 0) // FIXME: use force instead
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	RENDER_BOUNDING_BOXES := true
+	RENDER_FPS := true
+
 	screen.Fill(color.Black)
 	// vector.DrawFilledRect(screen, 0, 0, 32, 32, color.White, false)
 
 	// render the player bounding box
-	g.playerBody.EachShape(func(s *cp.Shape) {
-		bb := s.BB()
-		x, y, width, height := bb.L, bb.B, bb.R-bb.L, bb.T-bb.B
-		vector.StrokeRect(screen, float32(x), float32(y), float32(width), float32(height), 2, color.White, true)
-	})
+	if RENDER_BOUNDING_BOXES {
+		g.physicsSpace.EachBody(func(body *cp.Body) {
+			body.EachShape(func(s *cp.Shape) {
+				bb := s.BB()
+				x, y, width, height := bb.L, bb.B, bb.R-bb.L, bb.T-bb.B
+				vector.StrokeRect(screen, float32(x), float32(y), float32(width), float32(height), 2, color.White, true)
+			})
+		})
+	}
+	if RENDER_FPS {
+		ebitenutil.DebugPrint(screen, fmt.Sprintln("TPS:", ebiten.ActualTPS()))
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (w, h int) {
