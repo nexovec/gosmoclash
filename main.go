@@ -19,6 +19,8 @@ import (
 	"image/color"
 	"log"
 	"log/slog"
+	"math"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -31,6 +33,8 @@ const (
 	screenWidth  = 1280
 	screenHeight = 720
 )
+
+var logger *slog.Logger
 
 type Game struct {
 	physicsSpace *cp.Space
@@ -66,6 +70,7 @@ func (g *Game) Initialize() error {
 	groundShape.SetCollisionType(2)
 	g.physicsSpace.AddBody(staticBody)
 	g.physicsSpace.AddShape(groundShape)
+	logger.Debug("Initialized")
 
 	return nil
 }
@@ -101,10 +106,11 @@ func (g *Game) Update() error {
 	WALKING_SPEED_LIMIT := 100.0
 	// SPEED_LIMIT := 500.0
 	slog.Debug("Update I have no clue")
-	g.playerBody.ApplyForceAtWorldPoint(cp.Vector{X: WALKING_ACCELERATION * 2000 * float64(walkingDirection), Y: 0}, g.playerBody.CenterOfGravity())
+	// g.playerBody.ApplyForceAtWorldPoint(cp.Vector{X: WALKING_ACCELERATION * 2000 * float64(walkingDirection), Y: 0}, g.playerBody.CenterOfGravity())
+	g.playerBody.ApplyForceAtLocalPoint(cp.Vector{X: WALKING_ACCELERATION * 2000 * float64(walkingDirection), Y: 0}, g.playerBody.CenterOfGravity())
 	vel := g.playerBody.Velocity()
 	vel.Y = 0
-	g.playerBody.SetVelocity(vel.Clamp(WALKING_SPEED_LIMIT).X, g.playerBody.Velocity().Y)
+	g.playerBody.SetVelocity(vel.Clamp(WALKING_SPEED_LIMIT*math.Abs(float64(walkingDirection))).X, g.playerBody.Velocity().Y)
 
 	return nil
 }
@@ -136,6 +142,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (w, h int) {
 }
 
 func main() {
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	logger = slog.New(logHandler)
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Ebiten")
 	game := Game{}
