@@ -1,5 +1,7 @@
 # gosmoclash
 
+> ATTENTION: There is nothing here yet. I would sure like to make this one day, but now I have other stuff to do.
+
 This is a rewrite of my 2D spaceship management game [cosmoclash](github.com/nexovec/cosmoclash) in go. The original was never finished, because the network code is basically unmanagable in lua, even though the architecture isn't super horrible.
 
 Cosmoclash is my exploratory programming project, so there aren't any firm requirements. You control a character manning a spaceship, you start on a space station where you undock your spaceship to warp into a battle-royale like map where you compete for resources, avoid asteroid dust storms, do PvP or team up with others. The big dream of this game is to have a single persistent world for all players with an expansive economy system to truly simulate difficult political relationship in a space-born civilization, so code needs to be carefully designed for this right from the get-go.
